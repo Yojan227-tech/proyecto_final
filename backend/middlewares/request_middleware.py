@@ -8,7 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.models.models import Rol, Usuario
-from backend.security import validate_access_token
+from backend.security import check_rate_limit, validate_access_token
 
 
 logger = logging.getLogger("backend.requests")
@@ -44,6 +44,24 @@ class RequestMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable):
         start_time = time.perf_counter()
 
+        if request.url.path in {
+            "/api/auth/login",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
+            "/api/auth/bootstrap-admin",
+        }:
+            client_ip = request.client.host if request.client else "unknown"
+            rate_limit_key = f"auth:{client_ip}:{request.url.path}"
+            if not check_rate_limit(rate_limit_key, limit=10, window_seconds=60):
+                response = JSONResponse(
+                    status_code=429,
+                    content={
+                        "detail": "Demasiados intentos. Inténtalo de nuevo más tarde."
+                    },
+                )
+                self._apply_security_headers(response)
+                return response
+
         if request.method != "OPTIONS" and request.url.path not in self.PUBLIC_PATHS:
             authorization = request.headers.get("Authorization", "")
             scheme, _, token = authorization.partition(" ")
@@ -69,10 +87,12 @@ class RequestMiddleware(BaseHTTPMiddleware):
                 logger.error(
                     "No hay una fábrica de sesiones configurada en la aplicación."
                 )
-                return JSONResponse(
+                response = JSONResponse(
                     status_code=500,
                     content={"detail": "La autenticación no está configurada."},
                 )
+                self._apply_security_headers(response)
+                return response
 
             db = session_factory()
             try:
@@ -84,10 +104,12 @@ class RequestMiddleware(BaseHTTPMiddleware):
                 )
             except SQLAlchemyError:
                 logger.exception("No se pudo verificar el usuario autenticado.")
-                return JSONResponse(
+                response = JSONResponse(
                     status_code=500,
                     content={"detail": "No se pudo verificar la sesión."},
                 )
+                self._apply_security_headers(response)
+                return response
             finally:
                 db.close()
 
@@ -126,10 +148,12 @@ class RequestMiddleware(BaseHTTPMiddleware):
                 ):
                     allowed = {"ADMINISTRADOR"}
             if allowed is not None and role not in allowed:
-                return JSONResponse(
+                response = JSONResponse(
                     status_code=403,
                     content={"detail": "Tu rol no tiene permiso para esta operación."},
                 )
+                self._apply_security_headers(response)
+                return response
 
         try:
             response = await call_next(request)
@@ -154,6 +178,24 @@ class RequestMiddleware(BaseHTTPMiddleware):
         return response
 
     @staticmethod
+    def _apply_security_headers(response: JSONResponse) -> JSONResponse:
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault(
+            "Referrer-Policy",
+            "strict-origin-when-cross-origin",
+        )
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=()",
+        )
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'",
+        )
+        return response
+
+    @staticmethod
     def _unauthorized(request: Request, start_time: float, detail: str):
         elapsed_ms = (time.perf_counter() - start_time) * 1000
         logger.warning(
@@ -162,4 +204,6 @@ class RequestMiddleware(BaseHTTPMiddleware):
             request.url.path,
             elapsed_ms,
         )
-        return JSONResponse(status_code=401, content={"detail": detail})
+        response = JSONResponse(status_code=401, content={"detail": detail})
+        RequestMiddleware._apply_security_headers(response)
+        return response

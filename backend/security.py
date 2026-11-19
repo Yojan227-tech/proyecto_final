@@ -3,10 +3,27 @@ import hashlib
 import hmac
 import json
 import os
+import threading
 import time
+from collections import defaultdict, deque
 from typing import Any, Dict
 
 TOKEN_TTL_SECONDS = 60 * 60
+_AUTH_RATE_LIMITS: dict[str, deque[float]] = defaultdict(deque)
+_AUTH_RATE_LIMIT_LOCK = threading.Lock()
+
+
+def check_rate_limit(key: str, limit: int = 10, window_seconds: int = 60) -> bool:
+    """Return True when a request is still within the auth rate limit."""
+    now = time.monotonic()
+    with _AUTH_RATE_LIMIT_LOCK:
+        history = _AUTH_RATE_LIMITS[key]
+        while history and now - history[0] > window_seconds:
+            history.popleft()
+        if len(history) >= limit:
+            return False
+        history.append(now)
+        return True
 
 
 def _encode(value: bytes) -> str:

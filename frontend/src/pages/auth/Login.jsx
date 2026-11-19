@@ -1,12 +1,46 @@
 import { useState } from 'react';
-import { ShieldCheck, Mail, Lock, User, CreditCard, KeyRound } from 'lucide-react';
+import {
+  CreditCard,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  LogIn,
+  Mail,
+  PackageCheck,
+  ShieldCheck,
+  TrendingUp,
+  User,
+} from 'lucide-react';
+import analyticsIllustration from '../../assets/login-analytics.svg';
 import { authService } from '../../services/authService';
 import '../../styles/Login.css';
+
+function HangerIcon({ size = 34 }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+    >
+      <path
+        d="M16 5.2a3.1 3.1 0 1 1 2.4 3v1.9l10.1 6.2a1.8 1.8 0 0 1-.9 3.3H4.4a1.8 1.8 0 0 1-.9-3.3L14 10.1V8.2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
 
 export default function Login({ onLoginSuccess }) {
   const [esRegistro, setEsRegistro] = useState(false);
   const [recuperacion, setRecuperacion] = useState(false);
   const [pasoRecuperacion, setPasoRecuperacion] = useState(1);
+  const [mostrarContrasenia, setMostrarContrasenia] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
 
   const [recuperacionData, setRecuperacionData] = useState({
@@ -115,48 +149,53 @@ export default function Login({ onLoginSuccess }) {
   return (
     <div className="login-container">
       <div className="login-wrapper">
-        
-        {/* PANEL IZQUIERDO - BRANDING */}
         <div className="login-branding">
           <div className="branding-header">
-            <ShieldCheck size={56} color="#3478c8" />
-            <h1>SIES Yullita</h1>
-            <p>Sistema Integral de Gestión y Control de Producción</p>
+            <div className="brand-lockup">
+              <span className="brand-symbol"><HangerIcon size={64} /></span>
+              <div>
+                <h1><span>S</span>IES</h1>
+                <p>Sistema de Inventarios</p>
+              </div>
+            </div>
           </div>
 
-          <div className="branding-features">
-            <div className="feature-item">
-              <span className="feature-bullet"></span>
-              <span>Control detallado de insumos y materia prima</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-bullet"></span>
-              <span>Monitoreo de trazabilidad y fichas técnicas</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-bullet"></span>
-              <span>Seguimiento de módulos y órdenes de producción</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-bullet"></span>
-              <span>Auditoría de calidad y gestión de personal</span>
-            </div>
+          <div className="branding-main">
+            <p className="branding-eyebrow">SISTEMA INTEGRAL DE GESTIÓN TEXTIL</p>
+            <h2>
+              Controla, Organiza y Gestiona tu Inventario de{' '}
+              <span>Forma Eficiente</span>
+            </h2>
+            <p className="branding-description">
+              Administra los procesos de tu taller desde un solo lugar.
+            </p>
+            <img
+              className="branding-illustration"
+              src={analyticsIllustration}
+              alt=""
+              aria-hidden="true"
+            />
           </div>
 
           <div className="branding-footer">
-            <p>© 2026 Creaciones Yullita. Todos los derechos reservados.</p>
+            <span><PackageCheck size={21} /> Inventario <br /> en Tiempo Real</span>
+            <span><ShieldCheck size={21} /> Mayor Control <br /> y Seguridad</span>
+            <span><TrendingUp size={21} /> Gestión Más <br /> Eficiente</span>
           </div>
         </div>
 
-        {/* PANEL DERECHO - FORMULARIO */}
         <div className="login-card">
+          <div className="login-card-brand">
+            <span className="login-card-mark"><HangerIcon size={48} /></span>
+            <span className="login-card-wordmark"><span>S</span>IES</span>
+          </div>
           <div className="login-header">
             <h2>
               {recuperacion
                 ? 'Recuperar contraseña'
                 : esRegistro
                   ? 'Crear Cuenta'
-                  : 'Iniciar Sesión'}
+                  : 'Inicia sesión en tu cuenta'}
             </h2>
             <p>
               {recuperacion
@@ -170,7 +209,10 @@ export default function Login({ onLoginSuccess }) {
           </div>
 
           {mensaje.texto && (
-            <div className={`alert-box ${mensaje.tipo === 'error' ? 'alert-error' : 'alert-success'}`}>
+            <div
+              className={`alert-box ${mensaje.tipo === 'error' ? 'alert-error' : 'alert-success'}`}
+              role="alert"
+            >
               {mensaje.texto}
             </div>
           )}
@@ -178,14 +220,15 @@ export default function Login({ onLoginSuccess }) {
           {!recuperacion && !esRegistro ? (
             <form onSubmit={handleLoginSubmit} className="auth-form">
               <div className="form-group">
-                <label htmlFor="login-correo">Correo Electrónico</label>
+                <label className="sr-only" htmlFor="login-correo">Correo Electrónico</label>
                 <div className="input-wrapper">
-                  <Mail className="input-icon" size={18} />
+                  <User className="input-icon" size={19} />
                   <input
                     id="login-correo"
                     type="email"
                     required
-                    placeholder="usuario@yullita.com"
+                    autoComplete="username"
+                    placeholder="Usuario"
                     value={loginData.correo}
                     onChange={(e) => setLoginData({ ...loginData, correo: e.target.value })}
                   />
@@ -193,33 +236,47 @@ export default function Login({ onLoginSuccess }) {
               </div>
 
               <div className="form-group">
-                <label htmlFor="login-contrasenia">Contraseña</label>
+                <label className="sr-only" htmlFor="login-contrasenia">Contraseña</label>
                 <div className="input-wrapper">
                   <Lock className="input-icon" size={18} />
                   <input
                     id="login-contrasenia"
-                    type="password"
+                    type={mostrarContrasenia ? 'text' : 'password'}
                     required
-                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    placeholder="Contraseña"
                     value={loginData.contrasenia}
                     onChange={(e) => setLoginData({ ...loginData, contrasenia: e.target.value })}
                   />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    aria-label={mostrarContrasenia ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    onClick={() => setMostrarContrasenia(!mostrarContrasenia)}
+                  >
+                    {mostrarContrasenia ? <EyeOff size={19} /> : <Eye size={19} />}
+                  </button>
                 </div>
               </div>
 
+              <div className="form-options">
+                <span><ShieldCheck size={15} /> Acceso seguro</span>
+                <button
+                  type="button"
+                  className="recovery-link"
+                  onClick={() => {
+                    setRecuperacion(true);
+                    setPasoRecuperacion(1);
+                    setMensaje({ texto: '', tipo: '' });
+                  }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+
               <button type="submit" className="btn-primary">
-                Ingresar al Taller
-              </button>
-              <button
-                type="button"
-                className="recovery-link"
-                onClick={() => {
-                  setRecuperacion(true);
-                  setPasoRecuperacion(1);
-                  setMensaje({ texto: '', tipo: '' });
-                }}
-              >
-                ¿Olvidaste tu contraseña?
+                <span>Iniciar sesión</span>
+                <LogIn size={19} />
               </button>
             </form>
           ) : recuperacion ? (
@@ -476,6 +533,11 @@ export default function Login({ onLoginSuccess }) {
                 {esRegistro ? '¿Ya tienes cuenta? Inicia sesión aquí' : '¿No tienes cuenta? Regístrate aquí'}
               </button>
             )}
+          </div>
+          <div className="login-card-footer">
+            <span>SIES</span>
+            <i aria-hidden="true">•</i>
+            <span>Sistema de Inventarios</span>
           </div>
         </div>
 

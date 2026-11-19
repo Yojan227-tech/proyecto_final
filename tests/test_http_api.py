@@ -118,6 +118,8 @@ class HttpApiTests(unittest.TestCase):
             response.headers["access-control-allow-origin"],
             "http://localhost:5173",
         )
+        self.assertEqual(response.headers["x-frame-options"], "DENY")
+        self.assertEqual(response.headers["x-content-type-options"], "nosniff")
 
     def test_admin_can_create_new_material_by_setting_existing_id_to_null(self):
         openapi = self.client.get("/openapi.json").json()
