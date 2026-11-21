@@ -37,11 +37,29 @@ export default function Login({ onLoginSuccess }) {
     e.preventDefault();
     setMensaje({ texto: '', tipo: '' });
 
+    const payload = {
+      empleado: (registroData.empleado || '').trim(),
+      correo: (registroData.correo || '').trim(),
+      contrasenia: registroData.contrasenia || '',
+      cedula: (registroData.cedula || '').trim(),
+      id_rol: Number(registroData.id_rol) || 2
+    };
+
     try {
-      const data = await authService.registrar(registroData);
-      setMensaje({ texto: data.mensaje || '¡Usuario creado con éxito! Ya puedes iniciar sesión.', tipo: 'exito' });
+      const data = await authService.registrar(payload);
+      setMensaje({
+        texto: data.mensaje || '¡Usuario creado con éxito! Ya puedes iniciar sesión.',
+        tipo: 'exito'
+      });
+      setRegistroData({
+        empleado: '',
+        correo: '',
+        contrasenia: '',
+        cedula: '',
+        id_rol: 2
+      });
       setEsRegistro(false);
-      setLoginData({ correo: registroData.correo, contrasenia: '' });
+      setLoginData({ correo: payload.correo, contrasenia: '' });
     } catch (err) {
       console.error("Error al registrar usuario:", err);
       setMensaje({ texto: err.message || 'No se pudo crear la cuenta.', tipo: 'error' });
@@ -51,7 +69,7 @@ export default function Login({ onLoginSuccess }) {
   return (
     <div className="login-container">
       <div className="login-wrapper">
-        
+
         {/* PANEL IZQUIERDO - BRANDING */}
         <div className="login-branding">
           <div className="branding-header">
